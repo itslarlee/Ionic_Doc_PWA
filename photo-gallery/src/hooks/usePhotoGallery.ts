@@ -5,9 +5,32 @@ import { useStorage } from '@ionic/react-hooks/storage';
 import { isPlatform } from '@ionic/react';
 import { CameraResultType, CameraSource, CameraPhoto, Capacitor, FilesystemDirectory } from "@capacitor/core";
 
+
+
+
 export function usePhotoGallery(){
+    
+    const { deleteFile, getUri, readFile, writeFile } = useFilesystem();
     const { getPhoto } = useCamera();
     const [photos, setPhotos] = useState<Photo[]>([]);
+
+
+    const savePicture = async (photo: CameraPhoto, fileName: string): Promise<Photo> => {
+        const base64Data = await base64FromPath(photo.webPath!);
+        const savedFile = await writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: FilesystemDirectory.Data
+        });
+    
+        // Use webPath to display the new image instead of base64 since it's
+        // already loaded into memory
+    
+        return {
+            filepath: fileName,
+            webviewPath: FilesystemDirectory.Data
+        };
+    };
 
     const takePhoto = async () => {
         const  cameraPhoto = await getPhoto({
@@ -17,12 +40,12 @@ export function usePhotoGallery(){
         });
 
         const fileName = new Date().getTime() + '.jpeg';
-        const newPhotos = [{
-        filepath: fileName,
-        webviewPath: cameraPhoto.webPath
-        }, ...photos];
+        const savedFileImage = await savePicture(cameraPhoto, fileName);
+        const newPhotos = [savedFileImage, ...photos];
         setPhotos(newPhotos)
     };
+
+    
 
     return {
         photos,
@@ -30,6 +53,10 @@ export function usePhotoGallery(){
       };
 
 }
+
+
+
+
 
 export interface Photo {
     filepath: string;
